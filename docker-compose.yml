@@ -31,6 +31,12 @@ services:
     ports:
       - "8083:8080"
 
+  auth-service:
+    build:
+      context: ./auth-service
+    ports:
+      - "8085:8085"
+
   keycloak:
     image: quay.io/keycloak/keycloak:20.0.5
     environment:
