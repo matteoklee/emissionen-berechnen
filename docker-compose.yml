@@ -57,6 +57,9 @@ services:
       - postgres
     volumes:
       - ./init-keycloak.sh:/opt/keycloak/init-keycloak.sh
+    build:
+      context: .
+      dockerfile: Dockerfile
     #command:
       #- start-dev
       #- --http-enabled=true
@@ -64,12 +67,13 @@ services:
       #- --hostname-strict-https=false
     #command: ["/bin/sh", "-c", "start-dev && /opt/keycloak/init-keycloak.sh"]
     #entrypoint:
-    command:
-      - /bin/bash
-      - -c
-      - |
-        /opt/keycloak/init-keycloak.sh &
-        /opt/keycloak/bin/kc.sh start-dev --http-enabled=true --hostname-strict=false --hostname-strict-https=false
+    #command:
+      #- /bin/bash
+      #- -c
+      #- |
+      #  /opt/keycloak/init-keycloak.sh &
+      #  /opt/keycloak/bin/kc.sh start-dev --http-enabled=true --hostname-strict=false --hostname-strict-https=false
+
       #- |
       #  /opt/keycloak/bin/kc.sh start-dev --http-enabled=true --hostname-strict=false --hostname-strict-https=false &
       #  sleep 20 &&
