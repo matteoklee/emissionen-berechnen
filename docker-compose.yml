@@ -63,13 +63,13 @@ services:
       #- --hostname-strict=false
       #- --hostname-strict-https=false
     #command: ["/bin/sh", "-c", "start-dev && /opt/keycloak/init-keycloak.sh"]
-    command:
-      - /bin/sh
+    entrypoint:
+      - /bin/bash
       - -c
       - |
         /opt/keycloak/bin/kc.sh start-dev &
-        sleep 30 &&
-        /opt/keycloak/init-keycloak.sh
+        sleep 20 &&
+        bash /opt/keycloak/init-keycloak.sh
     restart: unless-stopped
 
   postgres:
