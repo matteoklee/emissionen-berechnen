@@ -42,11 +42,20 @@ services:
       KC_DB_URL_PORT: 5432
       KC_DB_USERNAME: admin
       KC_DB_PASSWORD: admin
+      KC_HOSTNAME_STRICT: false
+      KC_HTTP_ENABLED: true
+      KC_HOSTNAME_STRICT_HTTPS: false
     ports:
       - "8080:8080"
     depends_on:
       - postgres
-    command: start-dev
+    command:
+      - start-dev
+      - --http-enabled=true
+      - --hostname-strict=false
+      - --hostname-strict-https=false
+    restart: unless-stopped
+
 
   postgres:
     image: postgres:14
