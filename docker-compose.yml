@@ -82,6 +82,9 @@ services:
       POSTGRES_DB: keycloak
     ports:
       - "5431:5431"
+    expose:
+      - "5431"
+    command: -p 5431
     networks:
       - keycloak-network
 
