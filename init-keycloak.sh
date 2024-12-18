@@ -1,6 +1,6 @@
 #!/bin/bash
 
-until curl -s http://localhost:8086 > /dev/null; do
+until curl -s http://localhost:8080 > /dev/null; do
   echo "Waiting for Keycloak to be available..."
   sleep 5
 done

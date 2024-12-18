@@ -67,7 +67,7 @@ services:
       - /bin/bash
       - -c
       - |
-        /opt/keycloak/bin/kc.sh start-dev &
+        /opt/keycloak/bin/kc.sh start-dev --http-enabled=true --hostname-strict=false --hostname-strict-https=false &
         sleep 20 &&
         bash /opt/keycloak/init-keycloak.sh
     restart: unless-stopped
