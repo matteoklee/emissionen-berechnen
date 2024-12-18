@@ -12,3 +12,6 @@ cd /opt/keycloak/bin
 ./kcadm.sh update realms/master -s sslRequired=NONE
 
 echo "Keycloak initialization completed!"
+
+echo "Skript erfolgreich beendet"
+exit 0
