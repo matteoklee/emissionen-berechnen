@@ -67,7 +67,8 @@ services:
       - /bin/sh
       - -c
       - |
-        /opt/keycloak/bin/kc.sh start-dev
+        /opt/keycloak/bin/kc.sh start-dev &
+        sleep 30
         /opt/keycloak/init-keycloak.sh
     restart: unless-stopped
 
