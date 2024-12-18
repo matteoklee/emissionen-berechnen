@@ -62,12 +62,7 @@ services:
       #- --http-enabled=true
       #- --hostname-strict=false
       #- --hostname-strict-https=false
-    command: >
-      sh -c "
-      /opt/keycloak/bin/kcadm.sh start-dev &&
-      sleep 20 &&
-      bash /opt/keycloak/init-keycloak.sh
-      "
+    command: ["/bin/sh", "-c", "start-dev && /opt/keycloak/init-keycloak.sh"]
     restart: unless-stopped
 
   postgres:
