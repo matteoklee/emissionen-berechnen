@@ -55,16 +55,16 @@ services:
       - "8080:8080"
     depends_on:
       - postgres
-    volumes:
-      - ./init-keycloak.sh:/opt/keycloak/init-keycloak.sh
-    build:
-      context: .
-      dockerfile: Dockerfile
-    #command:
-      #- start-dev
-      #- --http-enabled=true
-      #- --hostname-strict=false
-      #- --hostname-strict-https=false
+    #volumes:
+      #- ./init-keycloak.sh:/opt/keycloak/init-keycloak.sh
+    #build:
+    #  context: .
+    #  dockerfile: Dockerfile
+    command:
+      - start-dev
+      - --http-enabled=true
+      - --hostname-strict=false
+      - --hostname-strict-https=false
     #command: ["/bin/sh", "-c", "start-dev && /opt/keycloak/init-keycloak.sh"]
     #entrypoint:
     #command:
