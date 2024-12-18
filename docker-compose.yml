@@ -55,13 +55,20 @@ services:
       - "8086:8086"
     depends_on:
       - postgres
-    command:
-      - start-dev
-      - --http-enabled=true
-      - --hostname-strict=false
-      - --hostname-strict-https=false
+    volumes:
+      - ./init-keycloak.sh:/opt/keycloak/init-keycloak.sh
+    #command:
+      #- start-dev
+      #- --http-enabled=true
+      #- --hostname-strict=false
+      #- --hostname-strict-https=false
+    command: >
+      sh -c "
+      /opt/keycloak/bin/kc.sh start-dev &&
+      sleep 20 &&
+      bash /opt/keycloak/init-keycloak.sh
+      "
     restart: unless-stopped
-
 
   postgres:
     image: postgres:14
