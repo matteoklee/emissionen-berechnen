@@ -64,7 +64,7 @@ services:
       #- --hostname-strict-https=false
     command: >
       sh -c "
-      /opt/keycloak/bin/kc.sh start-dev &&
+      /opt/keycloak/bin/kcadm.sh start-dev &&
       sleep 20 &&
       bash /opt/keycloak/init-keycloak.sh
       "
