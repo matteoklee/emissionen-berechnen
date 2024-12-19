@@ -1,7 +1,12 @@
 package de.kleemann.authservice.api;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import de.kleemann.authservice.api.dto.UserRequest;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.LinkedMultiValueMap;
@@ -9,6 +14,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,6 +27,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/auth")
+@Tag(name = "AuthController", description = "Verwaltet die Authentifizierungs- und Token-Funktionen")
 public class AuthController {
 
     private static final String KEYCLOAK_TOKEN_URL = "http://217.160.66.229:8080/realms/emissionen-berechnen-realm/protocol/openid-connect/token";
@@ -29,11 +36,33 @@ public class AuthController {
     private static final String CLIENT_ID = "emissionen-berechnen-backend";
     private static final String CLIENT_SECRET = "psU4cnvokxEu9TVmiIWHEclMjKBOAHWJ";
 
+    //TODO: Logging, outsource logic to core
 
-    @GetMapping("/validate")
+    @GetMapping("/greeting")
     public ResponseEntity<?> validateToken() {
         return ResponseEntity.ok("AuthController is available.");
     }
+
+    @GetMapping("/validate")
+    public ResponseEntity<?> validateToken(@RequestHeader("Authorization") String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", token);
+
+        RestTemplate restTemplate = new RestTemplate();
+        HttpEntity<String> request = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(KEYCLOAK_USERINFO_URL, HttpMethod.GET, request, String.class);
+            if (response.getStatusCode() == HttpStatus.OK) {
+                return ResponseEntity.ok("Token is valid");
+            } else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
+            }
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token validation failed: " + ex.getMessage());
+        }
+    }
+
 
     @GetMapping("/admin")
     @PreAuthorize("hasRole('admin')")
@@ -43,6 +72,9 @@ public class AuthController {
 
     @PostMapping("/login")
     @RateLimiter(name = "loginLimiter", fallbackMethod = "registerFallback")
+    @Operation(summary = "Benutzer-Login", description = "Authentifiziert einen Benutzer mit Benutzername und Passwort.")
+    @ApiResponse(responseCode = "200", description = "Login erfolgreich")
+    @ApiResponse(responseCode = "400", description = "Ungültige Anmeldeinformationen")
     public ResponseEntity<?> login(@RequestParam String username, @RequestParam String password) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED);
@@ -81,6 +113,51 @@ public class AuthController {
         } catch (Exception ex) {
             ex.printStackTrace();
             return ResponseEntity.badRequest().body("Failed to retrieve user info: " + ex.getMessage());
+        }
+    }
+
+    @GetMapping("/userinfo/{username}")
+    public ResponseEntity<?> getUserInfoByUsername(@PathVariable String username) {
+        final String adminToken = getAdminToken();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", "Bearer " + adminToken);
+
+        String url = KEYCLOAK_USERCREATION_URL + "?username=" + username;
+
+        RestTemplate restTemplate = new RestTemplate();
+        HttpEntity<String> request = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<Map[]> response = restTemplate.exchange(url, HttpMethod.GET, request, Map[].class);
+            if (response.getBody() != null && response.getBody().length > 0) {
+                return ResponseEntity.ok(response.getBody()[0]);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            }
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving user info: " + ex.getMessage());
+        }
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<?> refreshToken(@RequestParam String refreshToken) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+        body.add("grant_type", "refresh_token");
+        body.add("client_id", CLIENT_ID);
+        body.add("client_secret", CLIENT_SECRET);
+        body.add("refresh_token", refreshToken);
+
+        RestTemplate restTemplate = new RestTemplate();
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.postForEntity(KEYCLOAK_TOKEN_URL, request, Map.class);
+            return ResponseEntity.ok(response.getBody());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Failed to refresh token: " + e.getMessage());
         }
     }
 
@@ -123,6 +200,24 @@ public class AuthController {
         }
     }
 
+    @DeleteMapping("/user/{userId}")
+    public ResponseEntity<?> deleteUser(@PathVariable String userId) {
+        String adminToken = getAdminToken();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", "Bearer " + adminToken);
+
+        RestTemplate restTemplate = new RestTemplate();
+        String deleteUserUrl = KEYCLOAK_USERCREATION_URL + "/" + userId;
+
+        try {
+            restTemplate.exchange(deleteUserUrl, HttpMethod.DELETE, new HttpEntity<>(headers), Void.class);
+            return ResponseEntity.ok("User deleted successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to delete user: " + e.getMessage());
+        }
+    }
+
+
     public ResponseEntity<?> registerFallback(UserRequest userRequest, Throwable t) {
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body("Rate limit exceeded. Please try again later.");
     }
@@ -150,21 +245,68 @@ public class AuthController {
         }
     }
 
-    /*
-    private String getUserId(String username, String token) {
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+            @RequestHeader("Authorization") String token,
+            @RequestParam String oldPassword,
+            @RequestParam String newPassword) {
+        String userId = null;
+        try {
+            userId = getUserIdFromToken(token);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        if (!validateOldPassword(userId, oldPassword, token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Old password is incorrect.");
+        }
+
+        try {
+            setUserPassword(userId, newPassword, token);
+            return ResponseEntity.ok("Password changed successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to change password: " + e.getMessage());
+        }
+    }
+
+    private boolean validateOldPassword(String userId, String oldPassword, String token) {
         HttpHeaders headers = new HttpHeaders();
-        headers.add("Authorization", "Bearer " + token);
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+        body.add("grant_type", "password");
+        body.add("client_id", CLIENT_ID);
+        body.add("username", userId);
+        body.add("password", oldPassword);
 
         RestTemplate restTemplate = new RestTemplate();
-        String userSearchUrl = KEYCLOAK_USERCREATION_URL + "?username=" + username;
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
 
-        ResponseEntity<Map[]> response = restTemplate.getForEntity(userSearchUrl, Map[].class, headers);
-        if (response.getBody() != null && response.getBody().length > 0) {
-            return (String) response.getBody()[0].get("id");
-        } else {
-            throw new RuntimeException("User ID not found for username: " + username);
+        try {
+            restTemplate.postForEntity(KEYCLOAK_TOKEN_URL, request, String.class);
+            return true;
+        } catch (Exception e) {
+            return false;
         }
-    }*/
+    }
+
+
+    private String getUserIdFromToken(String token) throws JsonProcessingException {
+        String[] parts = token.split("\\.");
+        if (parts.length < 2) throw new IllegalArgumentException("Invalid token format");
+
+        String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
+        Map<String, Object> claims = new ObjectMapper().readValue(payload, Map.class);
+
+        return claims.get("sub").toString();
+    }
+
+
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<?> handleException(Exception ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + ex.getMessage());
+    }
 
     private String getUserId(String username, String token) {
         HttpHeaders headers = new HttpHeaders();
