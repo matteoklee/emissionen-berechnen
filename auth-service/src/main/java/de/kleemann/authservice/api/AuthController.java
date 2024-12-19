@@ -1,19 +1,17 @@
 package de.kleemann.authservice.api;
 
-import de.kleemann.authservice.api.dto.LoginRequest;
-import de.kleemann.authservice.api.dto.UserRequest;
-import org.keycloak.admin.client.Keycloak;
-import org.keycloak.admin.client.KeycloakBuilder;
-import org.keycloak.representations.AccessTokenResponse;
-import org.keycloak.representations.idm.CredentialRepresentation;
-import org.keycloak.representations.idm.UserRepresentation;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import jakarta.annotation.security.RolesAllowed;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
-import javax.ws.rs.core.Response;
-import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Class "AuthController" is used for ...
@@ -26,35 +24,44 @@ import java.util.Collections;
 @RequestMapping("/auth")
 public class AuthController {
 
-    @Autowired
-    private Keycloak keycloak;
+    private static final String KEYCLOAK_TOKEN_URL = "http://217.160.66.229:8080/realms/emissionen-berechnen-realm/protocol/openid-connect/token";
+    private static final String CLIENT_ID = "emissionen-berechnen-backend";
+    private static final String CLIENT_SECRET = "psU4cnvokxEu9TVmiIWHEclMjKBOAHWJ";
 
-    @Value("${keycloak.realm}")
-    private String realm;
-
-    @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody UserRequest userRequest) {
-        UserRepresentation user = new UserRepresentation();
-        user.setUsername(userRequest.getUsername());
-        user.setEmail(userRequest.getEmail());
-        user.setEnabled(true);
-
-        CredentialRepresentation passwordCred = new CredentialRepresentation();
-        passwordCred.setTemporary(false);
-        passwordCred.setValue(userRequest.getPassword());
-
-        Response response = keycloak.realm(realm).users()
-                .create(user);
-
-        if (response.getStatus() == 201) {
-            return ResponseEntity.ok("User registered successfully.");
-        }
-        return ResponseEntity.status(response.getStatus()).body("Failed to register user.");
-    }
 
     @GetMapping("/validate")
     public ResponseEntity<?> validateToken() {
-        return ResponseEntity.ok("Token is valid.");
+        return ResponseEntity.ok("AuthController is available.");
+    }
+
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('admin')")
+    public String adminAccess() {
+        return "Welcome Admin!";
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestParam String username, @RequestParam String password) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+        body.add("grant_type", "password");
+        body.add("client_id", CLIENT_ID);
+        body.add("client_secret", CLIENT_SECRET);
+        body.add("username", username);
+        body.add("password", password);
+
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
+        RestTemplate restTemplate = new RestTemplate();
+
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity(KEYCLOAK_TOKEN_URL, request, String.class);
+            return ResponseEntity.ok(response.getBody());
+        } catch (Exception ex) {
+            //ex.printStackTrace();
+            return ResponseEntity.badRequest().body("Invalid username or password: " + ex.getMessage());
+        }
     }
 
 

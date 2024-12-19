@@ -2,6 +2,7 @@ package de.kleemann.authservice.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -13,18 +14,26 @@ import org.springframework.security.web.SecurityFilterChain;
  * @since 19.12.2024
  */
 @Configuration
+@EnableGlobalMethodSecurity(jsr250Enabled = true)
 public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf().disable()
-                .authorizeHttpRequests()
-                .requestMatchers("/auth/register", "/auth/login", "/auth/forgot-password").permitAll()
+                .authorizeRequests()
+                .requestMatchers("/auth/validate").permitAll()
+                .requestMatchers("/auth/login").permitAll()
+                .requestMatchers("/admin/**").hasRole("admin")
+                .requestMatchers("/moderator/**").hasRole("moderator")
+                .requestMatchers("/user/**").hasAnyRole("user", "admin", "moderator")
                 .anyRequest().authenticated()
-                .and()
-                .httpBasic();
+                //.and()
+                //.httpBasic()
+                .and().csrf().disable()
+                .oauth2ResourceServer()
+                .jwt();
         return http.build();
     }
+
 
 }
