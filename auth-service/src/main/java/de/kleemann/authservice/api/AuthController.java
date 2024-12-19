@@ -7,6 +7,7 @@ import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.LinkedMultiValueMap;
@@ -30,12 +31,20 @@ import java.util.Map;
 @Tag(name = "AuthController", description = "Verwaltet die Authentifizierungs- und Token-Funktionen")
 public class AuthController {
 
-    private static final String KEYCLOAK_TOKEN_URL = "http://217.160.66.229:8080/realms/emissionen-berechnen-realm/protocol/openid-connect/token";
-    private static final String KEYCLOAK_USERINFO_URL = "http://217.160.66.229:8080/realms/emissionen-berechnen-realm/protocol/openid-connect/userinfo";
-    private static final String KEYCLOAK_USERCREATION_URL = "http://217.160.66.229:8080/admin/realms/emissionen-berechnen-realm/users";
-    private static final String CLIENT_ID = "emissionen-berechnen-backend";
-    private static final String CLIENT_SECRET = "psU4cnvokxEu9TVmiIWHEclMjKBOAHWJ";
+    @Value("${auth.token-url}")
+    private String KEYCLOAK_TOKEN_URL;
 
+    @Value("${auth.user-info-url}")
+    private String KEYCLOAK_USERINFO_URL;
+
+    @Value("${auth.user-creation-url}")
+    private String KEYCLOAK_USERCREATION_URL;
+
+    @Value("${auth.client-id}")
+    private String CLIENT_ID;
+
+    @Value("${auth.client-secret}")
+    private String CLIENT_SECRET;
     //TODO: Logging, outsource logic to core, Caching
 
     @GetMapping("/greeting")
@@ -115,6 +124,7 @@ public class AuthController {
         }
     }
 
+    //TODO: @PreAuthorize("hasRole('admin')")
     @GetMapping("/userinfo/{username}")
     public ResponseEntity<?> getUserInfoByUsername(@PathVariable String username) {
         final String adminToken = getAdminToken();
