@@ -36,7 +36,7 @@ public class AuthController {
     private static final String CLIENT_ID = "emissionen-berechnen-backend";
     private static final String CLIENT_SECRET = "psU4cnvokxEu9TVmiIWHEclMjKBOAHWJ";
 
-    //TODO: Logging, outsource logic to core
+    //TODO: Logging, outsource logic to core, Caching
 
     @GetMapping("/greeting")
     public ResponseEntity<?> validateToken() {
