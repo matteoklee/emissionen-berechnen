@@ -1,8 +1,9 @@
 package de.kleemann.authservice.api;
 
-import jakarta.annotation.security.RolesAllowed;
+import de.kleemann.authservice.api.dto.UserRequest;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.LinkedMultiValueMap;
@@ -25,6 +26,8 @@ import java.util.Map;
 public class AuthController {
 
     private static final String KEYCLOAK_TOKEN_URL = "http://217.160.66.229:8080/realms/emissionen-berechnen-realm/protocol/openid-connect/token";
+    private static final String KEYCLOAK_USERINFO_URL = "http://217.160.66.229:8080/realms/emissionen-berechnen-realm/protocol/openid-connect/userinfo";
+    private static final String KEYCLOAK_USERCREATION_URL = "http://217.160.66.229:8080/admin/realms/emissionen-berechnen-realm/users";
     private static final String CLIENT_ID = "emissionen-berechnen-backend";
     private static final String CLIENT_SECRET = "psU4cnvokxEu9TVmiIWHEclMjKBOAHWJ";
 
@@ -49,6 +52,7 @@ public class AuthController {
         body.add("grant_type", "password");
         body.add("client_id", CLIENT_ID);
         body.add("client_secret", CLIENT_SECRET);
+        body.add("scope", "openid");
         body.add("username", username);
         body.add("password", password);
 
@@ -64,78 +68,145 @@ public class AuthController {
         }
     }
 
+    @GetMapping("/userinfo")
+    public ResponseEntity<?> getUserInfo(@RequestHeader("Authorization") String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", token);
+
+        RestTemplate restTemplate = new RestTemplate();
+        HttpEntity<String> request = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(KEYCLOAK_USERINFO_URL, HttpMethod.GET, request, String.class);
+            return ResponseEntity.ok(response.getBody());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return ResponseEntity.badRequest().body("Failed to retrieve user info: " + ex.getMessage());
+        }
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> registerUser(@RequestBody UserRequest userRequest) {
+        String username = userRequest.getUsername();
+        String email = userRequest.getEmail();
+        String password = userRequest.getPassword();
+        String firstName = userRequest.getFirstName();
+        String lastName = userRequest.getLastName();
+
+        final String ADMIN_TOKEN = getAdminToken();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", "Bearer " + ADMIN_TOKEN);
+        headers.add("Content-Type", "application/json");
+
+        Map<String, Object> user = new HashMap<>();
+        user.put("username", username);
+        user.put("email", email);
+        user.put("enabled", true);
+        user.put("firstName", firstName);
+        user.put("lastName", lastName);
+        user.put("attributes", Map.of("customAttr", "value"));
+
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+
+            HttpEntity<Map<String, Object>> createUserRequest = new HttpEntity<>(user, headers);
+            restTemplate.postForEntity(KEYCLOAK_USERCREATION_URL, createUserRequest, String.class);
+
+            String userId = getUserId(username, ADMIN_TOKEN);
+            setUserPassword(userId, password, ADMIN_TOKEN);
+
+            return ResponseEntity.ok("User " + username + " registered successfully.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Failed to register user: " + e.getMessage());
+        }
+    }
+
+    private String getAdminToken() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+        body.add("grant_type", "client_credentials");
+        body.add("client_id", "emissionen-berechnen-backend");
+        body.add("client_secret", "psU4cnvokxEu9TVmiIWHEclMjKBOAHWJ");
+
+        RestTemplate restTemplate = new RestTemplate();
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.postForEntity(KEYCLOAK_TOKEN_URL, request, Map.class);
+            System.err.println(response);
+            System.err.println(response.getBody());
+            System.err.println(response.getBody().get("access_token"));
+            return (String) response.getBody().get("access_token");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to retrieve admin token: " + e.getMessage(), e);
+        }
+    }
 
     /*
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+    private String getUserId(String username, String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", "Bearer " + token);
+
+        RestTemplate restTemplate = new RestTemplate();
+        String userSearchUrl = KEYCLOAK_USERCREATION_URL + "?username=" + username;
+
+        ResponseEntity<Map[]> response = restTemplate.getForEntity(userSearchUrl, Map[].class, headers);
+        if (response.getBody() != null && response.getBody().length > 0) {
+            return (String) response.getBody()[0].get("id");
+        } else {
+            throw new RuntimeException("User ID not found for username: " + username);
+        }
+    }*/
+
+    private String getUserId(String username, String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", "Bearer " + token);
+
+        RestTemplate restTemplate = new RestTemplate();
+        String userSearchUrl = KEYCLOAK_USERCREATION_URL + "?username=" + username;
+        System.err.println(userSearchUrl);
+
+        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
         try {
-            Keycloak keycloakLogin = Keycloak.getInstance(
-                    keycloak.getServerInfo().getInfo().get("keycloak-server-url"),
-                    realm,
-                    loginRequest.getUsername(),
-                    loginRequest.getPassword(),
-                    clientId,
-                    clientSecret
+            ResponseEntity<Map[]> response = restTemplate.exchange(
+                    userSearchUrl,
+                    HttpMethod.GET,
+                    requestEntity,
+                    Map[].class
             );
-            AccessTokenResponse tokenResponse = keycloakLogin.tokenManager().getAccessToken();
-            return ResponseEntity.ok(tokenResponse);
-        } catch (Exception e) {
-            return ResponseEntity.status(401).body("Invalid credentials.");
-        }
-    }
 
-    // Logout - Token-Invalidierung
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestParam String refreshToken) {
-        try {
-            keycloak.realm(realm).users().logout(refreshToken);
-            return ResponseEntity.ok("Logout successful.");
-        } catch (Exception e) {
-            return ResponseEntity.status(400).body("Logout failed.");
-        }
-    }
-
-    // Refresh Token - Generierung eines neuen Access Tokens
-    @PostMapping("/refresh-token")
-    public ResponseEntity<?> refreshToken(@RequestParam String refreshToken) {
-        try {
-            Keycloak keycloakRefresh = KeycloakBuilder.builder()
-                    .serverUrl(keycloak.getServerInfo().getInfo().get("keycloak-server-url"))
-                    .realm(realm)
-                    .clientId(clientId)
-                    .clientSecret(clientSecret)
-                    .grantType("refresh_token")
-                    .refreshToken(refreshToken)
-                    .build();
-
-            AccessTokenResponse tokenResponse = keycloakRefresh.tokenManager().refreshToken();
-            return ResponseEntity.ok(tokenResponse);
-        } catch (Exception e) {
-            return ResponseEntity.status(400).body("Failed to refresh token.");
-        }
-    }
-
-    // Passwort vergessen - Trigger für Passwort-Reset-E-Mail
-    @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@RequestParam String email) {
-        try {
-            // Benutzer suchen
-            UserRepresentation user = keycloak.realm(realm).users().search(email).stream()
-                    .findFirst()
-                    .orElse(null);
-
-            if (user == null) {
-                return ResponseEntity.status(404).body("User not found.");
+            if (response.getBody() != null && response.getBody().length > 0) {
+                return (String) response.getBody()[0].get("id");
+            } else {
+                throw new RuntimeException("User ID not found for username: " + username);
             }
-
-            // Passwort-Reset-E-Mail senden
-            keycloak.realm(realm).users().get(user.getId()).executeActionsEmail(Collections.singletonList("UPDATE_PASSWORD"));
-            return ResponseEntity.ok("Password reset email sent successfully.");
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Failed to send password reset email.");
+            throw new RuntimeException("Failed to retrieve user ID: " + e.getMessage(), e);
         }
     }
 
-     */
+
+    private void setUserPassword(String userId, String password, String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", "Bearer " + token);
+        headers.add("Content-Type", "application/json");
+
+        Map<String, Object> passwordPayload = new HashMap<>();
+        passwordPayload.put("type", "password");
+        passwordPayload.put("value", password);
+        passwordPayload.put("temporary", false);
+
+        RestTemplate restTemplate = new RestTemplate();
+        String passwordUrl = KEYCLOAK_USERCREATION_URL + "/" + userId + "/reset-password";
+        System.err.println(passwordUrl);
+
+        HttpEntity<Map<String, Object>> passwordRequest = new HttpEntity<>(passwordPayload, headers);
+        restTemplate.put(passwordUrl, passwordRequest);
+    }
 
 }

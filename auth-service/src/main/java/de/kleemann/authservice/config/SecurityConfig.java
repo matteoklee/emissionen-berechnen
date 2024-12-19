@@ -23,6 +23,7 @@ public class SecurityConfig {
                 .authorizeRequests()
                 .requestMatchers("/auth/validate").permitAll()
                 .requestMatchers("/auth/login").permitAll()
+                .requestMatchers("/auth/register").permitAll()
                 .requestMatchers("/admin/**").hasRole("admin")
                 .requestMatchers("/moderator/**").hasRole("moderator")
                 .requestMatchers("/user/**").hasAnyRole("user", "admin", "moderator")
