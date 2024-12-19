@@ -25,8 +25,8 @@ public class KeycloakConfig {
     @Value("${keycloak.client-id}")
     private String clientId;
 
-    @Value("${keycloak.client-secret}")
-    private String clientSecret;
+    //@Value("${keycloak.client-secret}")
+    //private String clientSecret;
 
     @Value("${keycloak.admin.username}")
     private String adminUsername;
@@ -36,13 +36,14 @@ public class KeycloakConfig {
 
     @Bean
     public Keycloak keycloak() {
+        System.setProperty("javax.net.ssl.trustStore", "NONE");
         return KeycloakBuilder.builder()
                 .serverUrl(serverUrl)
                 .realm(realm)
                 .username(adminUsername)
                 .password(adminPassword)
                 .clientId(clientId)
-                .clientSecret(clientSecret)
+                //.clientSecret(clientSecret)
                 .build();
     }
 
