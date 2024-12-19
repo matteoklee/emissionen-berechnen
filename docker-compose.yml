@@ -56,15 +56,15 @@ services:
     depends_on:
       - postgres
     #volumes:
-      #- ./init-keycloak.sh:/opt/keycloak/init-keycloak.sh
-    #build:
-    #  context: .
-    #  dockerfile: Dockerfile
+    #  - ./init-keycloak.sh:/opt/keycloak/init-keycloak.sh
     command:
       - start-dev
       - --http-enabled=true
       - --hostname-strict=false
       - --hostname-strict-https=false
+    #build:
+    #  context: .
+    #  dockerfile: Dockerfile
     #command: ["/bin/sh", "-c", "start-dev && /opt/keycloak/init-keycloak.sh"]
     #entrypoint:
     #command:
@@ -78,9 +78,9 @@ services:
       #  /opt/keycloak/bin/kc.sh start-dev --http-enabled=true --hostname-strict=false --hostname-strict-https=false &
       #  sleep 20 &&
       #  bash /opt/keycloak/init-keycloak.sh
-    restart: unless-stopped
-    networks:
-      - keycloak-network
+    #restart: unless-stopped
+    #networks:
+    #  - keycloak-network
 
   postgres:
     image: postgres:14
@@ -93,8 +93,8 @@ services:
     expose:
       - "5431"
     command: -p 5431
-    networks:
-      - keycloak-network
+    #networks:
+    #  - keycloak-network
 
   kafka:
     image: bitnami/kafka:latest
