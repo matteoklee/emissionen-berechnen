@@ -17,10 +17,12 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableGlobalMethodSecurity(jsr250Enabled = true)
 public class SecurityConfig {
 
+    //TODO: IP-basiertes-Rate-Limiting
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeRequests()
+                .requestMatchers("/actuator/resilience4jratelimiter").permitAll()
                 .requestMatchers("/auth/validate").permitAll()
                 .requestMatchers("/auth/login").permitAll()
                 .requestMatchers("/auth/register").permitAll()

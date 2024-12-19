@@ -2,10 +2,7 @@ package de.kleemann.authservice.api;
 
 import de.kleemann.authservice.api.dto.UserRequest;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -45,7 +42,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @RateLimiter(name = "loginLimiter")
+    @RateLimiter(name = "loginLimiter", fallbackMethod = "registerFallback")
     public ResponseEntity<?> login(@RequestParam String username, @RequestParam String password) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED);
@@ -88,7 +85,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    @RateLimiter(name = "registerLimiter")
+    @RateLimiter(name = "registerLimiter", fallbackMethod = "registerFallback")
     public ResponseEntity<?> registerUser(@RequestBody UserRequest userRequest) {
         String username = userRequest.getUsername();
         String email = userRequest.getEmail();
@@ -124,6 +121,10 @@ public class AuthController {
             e.printStackTrace();
             return ResponseEntity.status(500).body("Failed to register user: " + e.getMessage());
         }
+    }
+
+    public ResponseEntity<?> registerFallback(UserRequest userRequest, Throwable t) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body("Rate limit exceeded. Please try again later.");
     }
 
     private String getAdminToken() {
