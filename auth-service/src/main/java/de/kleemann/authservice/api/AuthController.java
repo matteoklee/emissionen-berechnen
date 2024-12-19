@@ -63,7 +63,6 @@ public class AuthController {
         }
     }
 
-
     @GetMapping("/admin")
     @PreAuthorize("hasRole('admin')")
     public String adminAccess() {
