@@ -1,6 +1,7 @@
 package de.kleemann.authservice.api;
 
 import de.kleemann.authservice.api.dto.UserRequest;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -44,6 +45,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
+    @RateLimiter(name = "loginLimiter")
     public ResponseEntity<?> login(@RequestParam String username, @RequestParam String password) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED);
@@ -86,6 +88,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
+    @RateLimiter(name = "registerLimiter")
     public ResponseEntity<?> registerUser(@RequestBody UserRequest userRequest) {
         String username = userRequest.getUsername();
         String email = userRequest.getEmail();
