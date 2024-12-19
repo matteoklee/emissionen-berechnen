@@ -57,6 +57,7 @@ services:
       - postgres
     #volumes:
     #  - ./init-keycloak.sh:/opt/keycloak/init-keycloak.sh
+    #  - keycloak_data:/opt/keycloak/data
     command:
       - start-dev
       - --http-enabled=true
@@ -79,8 +80,8 @@ services:
       #  sleep 20 &&
       #  bash /opt/keycloak/init-keycloak.sh
     #restart: unless-stopped
-    #networks:
-    #  - keycloak-network
+    networks:
+      - keycloak-network
 
   postgres:
     image: postgres:14
@@ -93,8 +94,10 @@ services:
     expose:
       - "5431"
     command: -p 5431
-    #networks:
-    #  - keycloak-network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - keycloak-network
 
   kafka:
     image: bitnami/kafka:latest
@@ -117,3 +120,8 @@ services:
 networks:
   keycloak-network:
     driver: bridge
+
+volumes:
+  keycloak_data:
+  postgres_data:
+
