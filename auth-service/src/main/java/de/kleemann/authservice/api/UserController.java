@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
  * @since 21.12.2024
  */
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api/${api.version}/users")
 @Tag(name = "UserController", description = "Verwaltet Benutzer und ihre Eigenschaften")
 public class UserController {
 
@@ -31,34 +31,6 @@ public class UserController {
 
     @GetMapping("/debug")
     public ResponseEntity<?> debugAuthorities() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return ResponseEntity.ok(authentication.getAuthorities());
-    }
-
-    @GetMapping("/debug2")
-    @PreAuthorize("hasAuthority('admin')")
-    public ResponseEntity<?> debugAuthorities2() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return ResponseEntity.ok(authentication.getAuthorities());
-    }
-
-    @GetMapping("/debug3")
-    @PreAuthorize("hasRole('ROLE_admin')")
-    public ResponseEntity<?> debugAuthorities3() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return ResponseEntity.ok(authentication.getAuthorities());
-    }
-
-    @GetMapping("/debug4")
-    @PreAuthorize("hasAuthority('ROLE_admin')")
-    public ResponseEntity<?> debugAuthorities4() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return ResponseEntity.ok(authentication.getAuthorities());
-    }
-
-    @GetMapping("/debug5")
-    @PreAuthorize("hasRole('admin')")
-    public ResponseEntity<?> debugAuthorities5() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return ResponseEntity.ok(authentication.getAuthorities());
     }

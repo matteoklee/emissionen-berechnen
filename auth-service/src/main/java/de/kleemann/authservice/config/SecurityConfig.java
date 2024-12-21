@@ -26,6 +26,8 @@ import java.util.List;
 public class SecurityConfig {
 
     //TODO: IP-basiertes-Rate-Limiting
+    @Value("${api.version}")
+    private String apiVersion;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -35,18 +37,19 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**").permitAll()
                 .requestMatchers("/api-docs/**").permitAll()
 
-                .requestMatchers("/auth/greeting").permitAll()
-                .requestMatchers("/auth/admin").permitAll()
-                .requestMatchers("/auth/validate").permitAll()
-                .requestMatchers("/auth/login").permitAll()
-                .requestMatchers("/auth/refresh-token").permitAll()
+                .requestMatchers("/api/" + apiVersion + "/auth/greeting").permitAll()
+                .requestMatchers("/api/" + apiVersion + "/auth/admin").permitAll()
+                .requestMatchers("/api/" + apiVersion + "/auth/validate").permitAll()
+                .requestMatchers("/api/" + apiVersion + "/auth/login").permitAll()
+                .requestMatchers("/api/" + apiVersion + "/auth/refresh-token").permitAll()
 
-                .requestMatchers("/users/register").permitAll()
-                .requestMatchers("/users/change-password").permitAll()
-                .requestMatchers("/users/username/{username}/**").authenticated()
-                .requestMatchers("/users/{userId}/**").permitAll()
-                .requestMatchers("/users/userinfo").permitAll()
+                .requestMatchers("/api/" + apiVersion + "/users/register").permitAll()
+                .requestMatchers("/api/" + apiVersion + "/users/change-password").permitAll()
+                .requestMatchers("/api/" + apiVersion + "/users/username/{username}/**").authenticated()
+                .requestMatchers("/api/" + apiVersion + "/users/{userId}/**").permitAll()
+                .requestMatchers("/api/" + apiVersion + "/users/userinfo").permitAll()
 
+                .requestMatchers("/api/" + apiVersion + "/admin/**").authenticated()
                 .requestMatchers("/users/debug").permitAll()
                 //.requestMatchers("/admin/**").hasRole("admin")
                 //.requestMatchers("/moderator/**").hasRole("moderator")

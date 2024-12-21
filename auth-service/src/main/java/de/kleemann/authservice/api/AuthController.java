@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
  * @since 18.12.2024
  */
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/${api.version}/auth")
 @Tag(name = "AuthController", description = "Verwaltet die Authentifizierungs- und Token-Funktionen")
 public class AuthController {
 
