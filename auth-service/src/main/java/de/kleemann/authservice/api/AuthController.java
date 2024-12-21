@@ -1,5 +1,6 @@
 package de.kleemann.authservice.api;
 
+import de.kleemann.authservice.api.dto.LoginRequest;
 import de.kleemann.authservice.core.AuthService;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,8 +52,8 @@ public class AuthController {
     @ApiResponse(responseCode = "400", description = "Ungültige Anmeldeinformationen")
     @RateLimiter(name = "loginLimiter", fallbackMethod = "loginFallback")
     @Operation(summary = "Benutzer-Login", description = "Authentifiziert einen Benutzer mit Benutzername und Passwort.")
-    public ResponseEntity<?> login(@RequestParam String username, @RequestParam String password) {
-        return authService.login(username, password);
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+        return authService.login(loginRequest.getUsername(), loginRequest.getPassword());
     }
 
     @PostMapping("/refresh-token")
