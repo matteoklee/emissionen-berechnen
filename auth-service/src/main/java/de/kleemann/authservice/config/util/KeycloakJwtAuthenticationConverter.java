@@ -22,34 +22,6 @@ import java.util.stream.Stream;
  */
 public class KeycloakJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken>
 {
-    /*
-    @NotEmpty
-    private List<String> clientIds;
-
-    @Override
-    public AbstractAuthenticationToken convert(Jwt source)
-    {
-        return new JwtAuthenticationToken(source, Stream.concat(new JwtGrantedAuthoritiesConverter().convert(source)
-                        .stream(), extractResourceRoles(source).stream())
-                .collect(toSet()));
-    }
-
-    private Collection<? extends GrantedAuthority> extractResourceRoles(Jwt jwt)
-    {
-        var resourceAccess = new HashMap<>(jwt.getClaim("resource_access"));
-        var resourceRoles = new ArrayList<>();
-
-        clientIds.stream().forEach(id ->
-        {
-            if (resourceAccess.containsKey(id))
-            {
-                var resource = (Map<String, List<String>>) resourceAccess.get(id);
-                resource.get("roles").forEach(role -> resourceRoles.add(id + "_" + role));
-            }
-        });
-        return resourceRoles.isEmpty() ? emptySet() : resourceRoles.stream().map(r -> new SimpleGrantedAuthority("ROLE_" + r)).collect(toSet());
-    }
-    */
 
     @Override
     public AbstractAuthenticationToken convert(Jwt jwt) {

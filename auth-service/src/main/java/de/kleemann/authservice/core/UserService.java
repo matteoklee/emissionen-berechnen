@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import de.kleemann.authservice.api.dto.UserRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -15,7 +18,9 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Class "UserService" is used for ...
@@ -47,6 +52,7 @@ public class UserService {
         this.restTemplate = new RestTemplate();
     }
 
+    /*
     public ResponseEntity<?> getUserInfoByToken(String token) {
         HttpHeaders headers = new HttpHeaders();
         headers.add("Authorization", token);
@@ -60,6 +66,35 @@ public class UserService {
             return ResponseEntity.badRequest().body("Failed to retrieve user info: " + ex.getMessage());
         }
     }
+     */
+
+    public ResponseEntity<?> getUserInfoByToken(String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", token);
+        HttpEntity<String> request = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(KEYCLOAK_USERINFO_URL, HttpMethod.GET, request, String.class);
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            Map<String, Object> userInfo = objectMapper.readValue(response.getBody(), Map.class);
+
+            if (!userInfo.containsKey("sub")) {
+                return ResponseEntity.badRequest().body("User ID (sub) not found in Keycloak response.");
+            }
+            String userId = userInfo.get("sub").toString();
+            ResponseEntity<?> userInfoResponse = getUserInfo(userId);
+
+            return ResponseEntity.ok(userInfoResponse.getBody());
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error parsing Keycloak response: " + e.getMessage());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return ResponseEntity.badRequest().body("Failed to retrieve user info: " + ex.getMessage());
+        }
+    }
+
 
     /*
     public ResponseEntity<?> getUserInfo(String userId) {
@@ -71,6 +106,7 @@ public class UserService {
         }
     }*/
 
+    //TODO: Erneute Keycloak-Anfrage vermeiden und Infos aus dem Authentication JWT-Token auslesen!
     public ResponseEntity<?> getUserInfo(String userId) { //604dd6b8-1ab3-40e6-a882-98c15ac1553c
         String url = KEYCLOAK_USERCREATION_URL + "/" + userId;
         HttpHeaders headers = new HttpHeaders();
@@ -188,6 +224,20 @@ public class UserService {
         } catch (Exception ex) {
             throw new RuntimeException("Failed to retrieve admin token: " + ex.getMessage(), ex);
         }
+    }
+
+    public ResponseEntity<?> getUserRoles() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || authentication.getAuthorities() == null) {
+            return ResponseEntity.status(403).body("No roles found for the current user.");
+        }
+
+        List<String> roles = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(roles);
     }
 
     /*

@@ -30,6 +30,7 @@ public class UserController {
     }
 
     @GetMapping("/debug")
+    @PreAuthorize("hasAnyRole('user', 'admin')")
     public ResponseEntity<?> debugAuthorities() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return ResponseEntity.ok(authentication.getAuthorities());
@@ -39,6 +40,13 @@ public class UserController {
     public ResponseEntity<?> getUserInfoByToken(@RequestHeader("Authorization") String token) {
         return userService.getUserInfoByToken(token);
     }
+
+    @GetMapping("/roles")
+    @Operation(summary = "Rollen des aktuellen Benutzers abrufen", description = "Liefert eine Liste der Rollen des angemeldeten Benutzers.")
+    public ResponseEntity<?> getMyRoles(@RequestHeader("Authorization") String token) {
+        return userService.getUserRoles();
+    }
+
 
     @GetMapping("/{userId}")
     @PreAuthorize("hasRole('admin') or #userId == authentication.principal.userId")

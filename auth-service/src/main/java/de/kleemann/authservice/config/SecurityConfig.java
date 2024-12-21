@@ -48,12 +48,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/" + apiVersion + "/users/username/{username}/**").authenticated()
                 .requestMatchers("/api/" + apiVersion + "/users/{userId}/**").permitAll()
                 .requestMatchers("/api/" + apiVersion + "/users/userinfo").permitAll()
+                .requestMatchers("/api/" + apiVersion + "/users/roles").authenticated()
 
                 .requestMatchers("/api/" + apiVersion + "/admin/**").authenticated()
                 .requestMatchers("/users/debug").permitAll()
-                //.requestMatchers("/admin/**").hasRole("admin")
-                //.requestMatchers("/moderator/**").hasRole("moderator")
-                //.requestMatchers("/user/**").hasAnyRole("user", "admin", "moderator")
+
                 .anyRequest().authenticated())
                 //.oauth2ResourceServer(oAuth -> oAuth.jwt(Customizer.withDefaults()));
                 //.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
@@ -69,17 +68,4 @@ public class SecurityConfig {
         return http.build();
 
     }
-
-    /*
-    @Bean
-    public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        grantedAuthoritiesConverter.setAuthoritiesClaimName("realm_access.roles");
-        grantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
-
-        JwtAuthenticationConverter authenticationConverter = new JwtAuthenticationConverter();
-        authenticationConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
-        return authenticationConverter;
-    }
-    */
 }
