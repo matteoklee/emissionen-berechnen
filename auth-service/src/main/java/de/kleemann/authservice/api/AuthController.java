@@ -53,6 +53,7 @@ public class AuthController {
     @RateLimiter(name = "loginLimiter", fallbackMethod = "loginFallback")
     @Operation(summary = "Benutzer-Login", description = "Authentifiziert einen Benutzer mit Benutzername und Passwort.")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+        System.err.println(loginRequest);
         return authService.login(loginRequest.getUsername(), loginRequest.getPassword());
     }
 

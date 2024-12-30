@@ -72,16 +72,20 @@ public class AuthService {
             body.add("password", password);
             body.add("scope", "openid");
 
-
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            //headers.set("Connection", "close");
 
-            ResponseEntity<String> response = restTemplate.postForEntity(
+            HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
+
+            ResponseEntity<String> response = restTemplate.exchange(
                     KEYCLOAK_TOKEN_URL,
-                    new HttpEntity<>(body, headers),
+                    HttpMethod.POST,
+                    requestEntity,
                     String.class
             );
 
+            System.err.println(response.getBody());
             return ResponseEntity.ok(response.getBody());
         } catch (Exception ex) {
             return ResponseEntity.badRequest().body("Invalid username or password: " + ex.getMessage());
